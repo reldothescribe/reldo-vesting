@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$RELDO Vesting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .card {
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-title {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #888;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-weight: 500;
+        }
+        
+        .stat-value.highlight {
+            color: #4ade80;
+        }
+        
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+        
+        .progress-bar {
+            height: 24px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .time-unit {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        
+        .time-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .time-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+        
+        .releases-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .release-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .release-amount {
+            color: #4ade80;
+            font-weight: 500;
+        }
+        
+        .release-time {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .release-link {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .release-link:hover {
+            color: #fff;
+        }
+        
+        .links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .link {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .link:hover {
+            color: #fff;
+            border-color: #4ade80;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+        
+        .error {
+            color: #f87171;
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        @media (max-width: 600px) {
+            .time-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>$RELDO Vesting</h1>
+            <p class="subtitle">3B tokens locked, 6 month linear vest</p>
+        </header>
+        
+        <div class="card">
+            <div class="card-title">Vesting Progress</div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Total Locked</span>
+                <span class="stat-value" id="totalLocked">Loading...</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Vested</span>
+                <span class="stat-value highlight" id="vested">Loading...</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Released</span>
+                <span class="stat-value" id="released">Loading...</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Available to Claim</span>
+                <span class="stat-value highlight" id="releasable">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Time Remaining</div>
+            <div class="time-grid">
+                <div class="time-unit">
+                    <div class="time-value" id="days">--</div>
+                    <div class="time-label">Days</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="hours">--</div>
+                    <div class="time-label">Hours</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="minutes">--</div>
+                    <div class="time-label">Minutes</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="seconds">--</div>
+                    <div class="time-label">Seconds</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Recent Releases</div>
+            <div class="releases-list" id="releasesList">
+                <div class="loading">Loading releases...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Contract Details</div>
+            <div class="stat-row">
+                <span class="stat-label">Contract</span>
+                <span class="stat-value"><a href="https://basescan.org/address/0x23b0948738e57605ee954eb10ABBa37fB5136510" target="_blank" class="release-link">0x23b0...6510</a></span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Token</span>
+                <span class="stat-value"><a href="https://basescan.org/token/0x389e4cc15AcE2F0993D61F0FF52C1F424915fb07" target="_blank" class="release-link">$RELDO</a></span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Beneficiary</span>
+                <span class="stat-value"><a href="https://basescan.org/address/0x62E6D3914c8e211dc27A27080B6eCf283979D60d" target="_blank" class="release-link">0x62E6...D60d</a></span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Start Date</span>
+                <span class="stat-value" id="startDate">Loading...</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">End Date</span>
+                <span class="stat-value" id="endDate">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="links">
+            <a href="https://basescan.org/address/0x23b0948738e57605ee954eb10ABBa37fB5136510" target="_blank" class="link">Basescan</a>
+            <a href="https://base.blockscout.com/address/0x23b0948738e57605ee954eb10abba37fb5136510" target="_blank" class="link">Blockscout</a>
+            <a href="https://github.com/reldothescribe/reldo-vesting" target="_blank" class="link">GitHub</a>
+            <a href="https://x.com/ReldoTheScribe" target="_blank" class="link">@ReldoTheScribe</a>
+        </div>
+    </div>
+    
+    <script type="module">
+        const VESTING_ADDRESS = '0x23b0948738e57605ee954eb10ABBa37fB5136510';
+        const TOKEN_ADDRESS = '0x389e4cc15AcE2F0993D61F0FF52C1F424915fb07';
+        const RPC_URL = 'https://mainnet.base.org';
+        
+        const VESTING_ABI = [
+            'function status() view returns (uint256 _totalAllocation, uint256 _vested, uint256 _released, uint256 _releasable, uint256 _start, uint256 _duration, uint256 _remaining)',
+            'event TokensReleased(uint256 amount)'
+        ];
+        
+        function formatTokens(wei) {
+            const tokens = Number(wei) / 1e18;
+            if (tokens >= 1e9) return (tokens / 1e9).toFixed(2) + 'B';
+            if (tokens >= 1e6) return (tokens / 1e6).toFixed(2) + 'M';
+            if (tokens >= 1e3) return (tokens / 1e3).toFixed(2) + 'K';
+            return tokens.toFixed(2);
+        }
+        
+        function formatDate(timestamp) {
+            return new Date(Number(timestamp) * 1000).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        function formatTimeAgo(timestamp) {
+            const seconds = Math.floor(Date.now() / 1000 - Number(timestamp));
+            if (seconds < 60) return seconds + 's ago';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            return Math.floor(seconds / 86400) + 'd ago';
+        }
+        
+        async function fetchStatus() {
+            try {
+                const response = await fetch(RPC_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'eth_call',
+                        params: [{
+                            to: VESTING_ADDRESS,
+                            data: '0x200d2ed2' // status()
+                        }, 'latest']
+                    })
+                });
+                const data = await response.json();
+                
+                // Decode the response (7 uint256 values)
+                const result = data.result.slice(2);
+                const values = [];
+                for (let i = 0; i < 7; i++) {
+                    values.push(BigInt('0x' + result.slice(i * 64, (i + 1) * 64)));
+                }
+                
+                return {
+                    totalAllocation: values[0],
+                    vested: values[1],
+                    released: values[2],
+                    releasable: values[3],
+                    start: values[4],
+                    duration: values[5],
+                    remaining: values[6]
+                };
+            } catch (err) {
+                console.error('Failed to fetch status:', err);
+                return null;
+            }
+        }
+        
+        async function fetchReleases() {
+            try {
+                // Fetch TokensReleased events
+                const response = await fetch(RPC_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'eth_getLogs',
+                        params: [{
+                            address: VESTING_ADDRESS,
+                            topics: ['0xa1598fb976f7dd9df63fd18699c54a5744a6a95364166bbd0d77a2f6c8438b1f'],
+                            fromBlock: '0x27b9900',
+                            toBlock: 'latest'
+                        }]
+                    })
+                });
+                const data = await response.json();
+                
+                return (data.result || []).map(log => ({
+                    amount: BigInt(log.data),
+                    txHash: log.transactionHash,
+                    blockNumber: parseInt(log.blockNumber, 16)
+                })).reverse();
+            } catch (err) {
+                console.error('Failed to fetch releases:', err);
+                return [];
+            }
+        }
+        
+        async function fetchBlockTimestamp(blockNumber) {
+            try {
+                const response = await fetch(RPC_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'eth_getBlockByNumber',
+                        params: ['0x' + blockNumber.toString(16), false]
+                    })
+                });
+                const data = await response.json();
+                return parseInt(data.result.timestamp, 16);
+            } catch (err) {
+                return null;
+            }
+        }
+        
+        function updateCountdown(remaining) {
+            const days = Math.floor(Number(remaining) / 86400);
+            const hours = Math.floor((Number(remaining) % 86400) / 3600);
+            const minutes = Math.floor((Number(remaining) % 3600) / 60);
+            const seconds = Number(remaining) % 60;
+            
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = hours;
+            document.getElementById('minutes').textContent = minutes;
+            document.getElementById('seconds').textContent = seconds;
+        }
+        
+        let vestingData = null;
+        
+        async function updateUI() {
+            const status = await fetchStatus();
+            if (!status) {
+                document.querySelector('.loading')?.remove();
+                return;
+            }
+            
+            vestingData = status;
+            
+            // Update stats
+            document.getElementById('totalLocked').textContent = formatTokens(status.totalAllocation) + ' RELDO';
+            document.getElementById('vested').textContent = formatTokens(status.vested) + ' RELDO';
+            document.getElementById('released').textContent = formatTokens(status.released) + ' RELDO';
+            document.getElementById('releasable').textContent = formatTokens(status.releasable) + ' RELDO';
+            
+            // Update progress
+            const progress = Number(status.vested * 10000n / status.totalAllocation) / 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress.toFixed(2) + '%';
+            
+            // Update dates
+            const startDate = Number(status.start);
+            const endDate = startDate + Number(status.duration);
+            document.getElementById('startDate').textContent = formatDate(startDate);
+            document.getElementById('endDate').textContent = formatDate(endDate);
+            
+            // Update countdown
+            updateCountdown(status.remaining);
+            
+            // Fetch and display releases
+            const releases = await fetchReleases();
+            const releasesList = document.getElementById('releasesList');
+            
+            if (releases.length === 0) {
+                releasesList.innerHTML = '<div class="loading">No releases yet</div>';
+            } else {
+                let html = '';
+                for (const release of releases.slice(0, 10)) {
+                    const timestamp = await fetchBlockTimestamp(release.blockNumber);
+                    html += `
+                        <div class="release-item">
+                            <span class="release-amount">+${formatTokens(release.amount)} RELDO</span>
+                            <span class="release-time">${timestamp ? formatTimeAgo(timestamp) : 'Block ' + release.blockNumber}</span>
+                            <a href="https://basescan.org/tx/${release.txHash}" target="_blank" class="release-link">View</a>
+                        </div>
+                    `;
+                }
+                releasesList.innerHTML = html;
+            }
+        }
+        
+        // Initial load
+        updateUI();
+        
+        // Update countdown every second
+        setInterval(() => {
+            if (vestingData && vestingData.remaining > 0n) {
+                vestingData.remaining = vestingData.remaining - 1n;
+                updateCountdown(vestingData.remaining);
+            }
+        }, 1000);
+        
+        // Refresh data every 30 seconds
+        setInterval(updateUI, 30000);
+    </script>
+</body>
+</html>
